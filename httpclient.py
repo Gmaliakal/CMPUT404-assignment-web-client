@@ -68,8 +68,19 @@ class HTTPClient(object):
         return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
+
+        hosttmp = url.split("://")
+        host = hosttmp[1].split("/")[0]
+        port = 80
         code = 500
-        body = ""
+       
+       # connect to host
+        self.connect(host,port)
+        
+        body= "GET / HTTP/1.1\r\nHOST:"+host+"\r\n\r\n"
+        self.sendall(body)
+        x = self.recvall(self.socket);
+        print(str(x))
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
