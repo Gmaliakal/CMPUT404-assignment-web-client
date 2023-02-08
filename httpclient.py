@@ -22,7 +22,8 @@ import sys
 import socket
 import re
 # you may use urllib to encode data appropriately
-import urllib.parse
+from urllib.parse import urlparse
+
 
 def help():
     print("httpclient.py [GET/POST] [URL]\n")
@@ -49,6 +50,9 @@ class HTTPClient(object):
     def get_body(self, data):
         return None
     
+    def shutdown(self):
+        self.socket.shutdown(socket.SHUT_WR) # shut down the server
+
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
         
@@ -65,27 +69,113 @@ class HTTPClient(object):
                 buffer.extend(part)
             else:
                 done = not part
-        return buffer.decode('utf-8')
+
+        return buffer.decode('#utf-8')
+
 
     def GET(self, url, args=None):
 
-        hosttmp = url.split("://")
-        host = hosttmp[1].split("/")[0]
+        #hosttmp = url.split("://")
+        #host = hosttmp[1].split("/")[0]
         port = 80
         code = 500
-       
+        body = None
+        path = "/"
+
+        o = urlparse(url);
+
+
+        try:
+            port = int(o.netloc.split(":")[1])
+        except:
+            port = 80
+
+        try:
+            host = o.netloc.split(":")[0] 
+        except:
+            host = o.netloc
+            
+        path = o.path
+        #host = o.hostname
+
+    
+      
        # connect to host
-        self.connect(host,port)
+        try:
+            self.connect(host,port)
+             # request header for get method
+            request = "GET " + path + " HTTP/1.1\r\nHOST:"+host+"\r\n\r\n"
+            print(request)
+
+            print("here")
+            # send and recieve the request #
+            self.sendall(request)
+            self.shutdown()
+            information = self.recvall(self.socket)
         
-        body= "GET / HTTP/1.1\r\nHOST:"+host+"\r\n\r\n"
-        self.sendall(body)
-        x = self.recvall(self.socket);
-        print(str(x))
+            # return code and response
+            
+            print("here2")
+            code = int(information.split(" ")[1])
+            body = information.split("\r\n\r\n")[1]
+            
+
+        except:
+            code = 404
+
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
+        # code = 500
+        # body = ""
+
+        port = 80
         code = 500
-        body = ""
+        body = None
+        path = "/"
+
+        o = urlparse(url);
+
+
+        try:
+            port = int(o.netloc.split(":")[1])
+        except:
+            port = 80
+
+        try:
+            host = o.netloc.split(":")[0] 
+        except:
+            host = o.netloc
+            
+        path = o.path
+        #host = o.hostname
+
+    
+      
+       # connect to host
+        try:
+            self.connect(host,port)
+             # request header for get method
+            request = "POST " + path + " HTTP/1.1\r\nHOST:"+host+"\r\n\r\n"
+            print(request)
+
+            print("here")
+            # send and recieve the request #
+            self.sendall(request)
+            self.shutdown()
+            information = self.recvall(self.socket)
+        
+            # return code and response
+            
+            print("here2")
+            code = int(information.split(" ")[1])
+            body = information.split("\r\n\r\n")[1]
+            
+
+        except:
+            code = 404
+
+
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):

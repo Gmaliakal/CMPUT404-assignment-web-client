@@ -173,6 +173,7 @@ class TestHTTPClient(unittest.TestCase):
 
     def testGET(self):
         '''Test HTTP GET'''
+        print("TESTING GET ++++++++++++++++++++++++++++++++")
         MyHTTPHandler.get = echo_path_get
         http = httpclass.HTTPClient()
         path = "abcdef/gjkd/dsadas"
