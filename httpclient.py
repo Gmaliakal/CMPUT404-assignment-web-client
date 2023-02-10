@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # coding: utf-8
-# Copyright 2016 Abram Hindle, https://github.com/tywtyw2002, and https://github.com/treedust
+# Copyright 2023 Abram Hindle, https://github.com/tywtyw2002, https://github.com/treedust and Georgin Maliakal
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,10 +49,6 @@ class HTTPClient(object):
 
     def get_body(self, data):
         return None
-    
-    # def shutdown(self):
-    #     self.socket.shutdown(socket.SHUT_RDWR) # shut down the server
-    #     #self.socket.close()
 
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -68,12 +64,26 @@ class HTTPClient(object):
         information = self.recvall(self.socket)
         self.close()
 
-        # return code and response
+        # return code and response and print to stdout
+        print(information)
         code = int(information.split(" ")[1])
         body = information.split("\r\n\r\n")[1]
 
-        return code,body
+        return code, body
 
+    def getreqpar(self, url):
+        o = urlparse(url);
+        path = o.path
+        try:
+            port = int(o.netloc.split(":")[1])
+        except:
+            port = 80
+        try:
+            host = o.netloc.split(":")[0]
+        except:
+            host = o.netloc
+
+        return path, port, host
 
 
     # read everything from the socket
@@ -91,40 +101,22 @@ class HTTPClient(object):
 
     def GET(self, url, args=None):
         body = None
-        o = urlparse(url);
-        path = o.path
-        try:
-            port = int(o.netloc.split(":")[1])
-        except:
-            port = 80
 
-        try:
-            host = o.netloc.split(":")[0] 
-        except:
-            host = o.netloc
+        # get paramaters for request from URL #
+        path, port, host = self.getreqpar(url)
 
-
-       # connect to host
+        # connect to host and send the request #
         try:
             self.connect(host,port)
-             # request header for get method
             if path != "":
                 request = "GET " + path + " HTTP/1.1\r\nHOST:"+host+"\r\nContent-Encoding: gzip\r\nConnection: close\r\nAccept: application/json\r\n\r\n"
             else:
-                #path = str(/)
+                # for when the url has nothing in the path parameter #
                 request = "GET / HTTP/1.1\r\nHOST:" + host + "\r\nContent-Encoding: gzip\r\nConnection: close\r\nAccept: application/json\r\n\r\n"
 
+            # send request and recieve response #
             code, body = self.requestrecieve(request)
-            # # send and recieve the request #
-            # self.sendall(request)
-            # information = self.recvall(self.socket)
-            # self.close()
-            #
-            #
-            #
-            # # return code and response
-            # code = int(information.split(" ")[1])
-            # body = information.split("\r\n\r\n")[1]
+
 
         except:
             code = 404
@@ -133,33 +125,12 @@ class HTTPClient(object):
 
 
     def POST(self, url, args=None):
-        # code = 500
-        # body = ""
-
-        port = 80
-        code = 500
         body = None
-        path = "/"
 
-        o = urlparse(url);
+        # get paramaters for request from URL #
+        path, port, host = self.getreqpar(url)
 
-
-        try:
-            port = int(o.netloc.split(":")[1])
-        except:
-            port = 80
-
-        try:
-            host = o.netloc.split(":")[0] 
-        except:
-            host = o.netloc
-            
-        path = o.path
-        #host = o.hostname
-
-    
-      
-       # connect to host #
+       # connect to host and send the request #
         try:
             self.connect(host,port)
 
@@ -174,24 +145,15 @@ class HTTPClient(object):
                     else:
                         query = query + str(key) + "=" + str(args[key])
                     i += 1
+
                 querylen = str(len(query))
-
-
                 request = "POST "+ path + " HTTP/1.1\r\nHOST: " + host + "\r\n"+"Content-Type: application/x-www-form-urlencoded\r\nContent-Encoding: gzip\r\nConnection: close\r\nAccept: application/json\r\nContent-Length: " + querylen + "\r\n\r\n" + query
             else:
+                # for when we post with no args #
                 request = "POST " + path + " HTTP/1.1\r\nHOST: " + host + "\r\n" + "Content-Type: application/x-www-form-urlencoded\r\nContent-Encoding: gzip\r\nConnection: close\r\nAccept: application/json\r\nContent-Length: " + "0" + "\r\n\r\n"
 
-
-            code,body=self.requestrecieve(request)
-            # # send and recieve the request #
-            # self.sendall(request)
-            # information = self.recvall(self.socket)
-            # self.close()
-            #
-            # # return code and response
-            #
-            # code = int(information.split(" ")[1])
-            # body = information.split("\r\n\r\n")[1]
+            # send request and recieve response #
+            code, body=self.requestrecieve(request)
 
         except:
             code = 404
