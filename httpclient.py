@@ -50,14 +50,31 @@ class HTTPClient(object):
     def get_body(self, data):
         return None
     
-    def shutdown(self):
-        self.socket.shutdown(socket.SHUT_WR) # shut down the server
+    # def shutdown(self):
+    #     self.socket.shutdown(socket.SHUT_RDWR) # shut down the server
+    #     #self.socket.close()
 
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
         
     def close(self):
         self.socket.close()
+
+
+    def requestrecieve(self,request):
+
+        # send and recieve the request #
+        self.sendall(request)
+        information = self.recvall(self.socket)
+        self.close()
+
+        # return code and response
+        code = int(information.split(" ")[1])
+        body = information.split("\r\n\r\n")[1]
+
+        return code,body
+
+
 
     # read everything from the socket
     def recvall(self, sock):
@@ -69,22 +86,13 @@ class HTTPClient(object):
                 buffer.extend(part)
             else:
                 done = not part
-
         return buffer.decode('#utf-8')
 
 
     def GET(self, url, args=None):
-
-        #hosttmp = url.split("://")
-        #host = hosttmp[1].split("/")[0]
-        port = 80
-        code = 500
         body = None
-        path = "/"
-
         o = urlparse(url);
-
-
+        path = o.path
         try:
             port = int(o.netloc.split(":")[1])
         except:
@@ -94,36 +102,35 @@ class HTTPClient(object):
             host = o.netloc.split(":")[0] 
         except:
             host = o.netloc
-            
-        path = o.path
-        #host = o.hostname
 
-    
-      
+
        # connect to host
         try:
             self.connect(host,port)
              # request header for get method
-            request = "GET " + path + " HTTP/1.1\r\nHOST:"+host+"\r\n\r\n"
-            print(request)
+            if path != "":
+                request = "GET " + path + " HTTP/1.1\r\nHOST:"+host+"\r\nContent-Encoding: gzip\r\nConnection: close\r\nAccept: application/json\r\n\r\n"
+            else:
+                #path = str(/)
+                request = "GET / HTTP/1.1\r\nHOST:" + host + "\r\nContent-Encoding: gzip\r\nConnection: close\r\nAccept: application/json\r\n\r\n"
 
-            print("here")
-            # send and recieve the request #
-            self.sendall(request)
-            self.shutdown()
-            information = self.recvall(self.socket)
-        
-            # return code and response
-            
-            print("here2")
-            code = int(information.split(" ")[1])
-            body = information.split("\r\n\r\n")[1]
-            
+            code, body = self.requestrecieve(request)
+            # # send and recieve the request #
+            # self.sendall(request)
+            # information = self.recvall(self.socket)
+            # self.close()
+            #
+            #
+            #
+            # # return code and response
+            # code = int(information.split(" ")[1])
+            # body = information.split("\r\n\r\n")[1]
 
         except:
             code = 404
 
         return HTTPResponse(code, body)
+
 
     def POST(self, url, args=None):
         # code = 500
@@ -152,45 +159,59 @@ class HTTPClient(object):
 
     
       
-       # connect to host
+       # connect to host #
         try:
             self.connect(host,port)
-             # request header for get method
-            request = "POST " + path + " HTTP/1.1\r\nHOST:"+host+"\r\n\r\n"
-            print(request)
 
-            print("here")
-            # send and recieve the request #
-            self.sendall(request)
-            self.shutdown()
-            information = self.recvall(self.socket)
-        
-            # return code and response
-            
-            print("here2")
-            code = int(information.split(" ")[1])
-            body = information.split("\r\n\r\n")[1]
-            
+            # Formatting the arguments as part of the body of the post request
+            if args is not None:
+                argslen = len(args)
+                i=1
+                query=""
+                for key in args:
+                    if argslen!=i:
+                        query = query + str(key) + "=" + str(args[key]) + "&"
+                    else:
+                        query = query + str(key) + "=" + str(args[key])
+                    i += 1
+                querylen = str(len(query))
+
+
+                request = "POST "+ path + " HTTP/1.1\r\nHOST: " + host + "\r\n"+"Content-Type: application/x-www-form-urlencoded\r\nContent-Encoding: gzip\r\nConnection: close\r\nAccept: application/json\r\nContent-Length: " + querylen + "\r\n\r\n" + query
+            else:
+                request = "POST " + path + " HTTP/1.1\r\nHOST: " + host + "\r\n" + "Content-Type: application/x-www-form-urlencoded\r\nContent-Encoding: gzip\r\nConnection: close\r\nAccept: application/json\r\nContent-Length: " + "0" + "\r\n\r\n"
+
+
+            code,body=self.requestrecieve(request)
+            # # send and recieve the request #
+            # self.sendall(request)
+            # information = self.recvall(self.socket)
+            # self.close()
+            #
+            # # return code and response
+            #
+            # code = int(information.split(" ")[1])
+            # body = information.split("\r\n\r\n")[1]
 
         except:
             code = 404
 
-
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
-        if (command == "POST"):
+        if command == "POST":
             return self.POST( url, args )
         else:
             return self.GET( url, args )
-    
+
+
 if __name__ == "__main__":
     client = HTTPClient()
     command = "GET"
-    if (len(sys.argv) <= 1):
+    if len(sys.argv) <= 1:
         help()
         sys.exit(1)
-    elif (len(sys.argv) == 3):
-        print(client.command( sys.argv[2], sys.argv[1] ))
+    elif len(sys.argv) == 3:
+        print(client.command(sys.argv[2], sys.argv[1]))
     else:
-        print(client.command( sys.argv[1] ))
+        print(client.command(sys.argv[1]))
