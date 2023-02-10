@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# coding: utf-8
+# coding: ISO-8859-1
 # Copyright 2023 Abram Hindle, https://github.com/tywtyw2002, https://github.com/treedust and Georgin Maliakal
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,7 +51,7 @@ class HTTPClient(object):
         return None
 
     def sendall(self, data):
-        self.socket.sendall(data.encode('utf-8'))
+        self.socket.sendall(data.encode('ISO-8859-1'))
         
     def close(self):
         self.socket.close()
@@ -72,7 +72,8 @@ class HTTPClient(object):
         return code, body
 
     def getreqpar(self, url):
-        o = urlparse(url);
+
+        o = urlparse(url)
         path = o.path
         try:
             port = int(o.netloc.split(":")[1])
@@ -96,7 +97,7 @@ class HTTPClient(object):
                 buffer.extend(part)
             else:
                 done = not part
-        return buffer.decode('#utf-8')
+        return buffer.decode('#ISO-8859-1')
 
 
     def GET(self, url, args=None):
